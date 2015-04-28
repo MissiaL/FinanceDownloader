@@ -64,8 +64,12 @@ config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
 try:
     dest = config['PATH']['dir']
     need_files = config['FILES']['need']
+    try:
+        vcl=config['PATH']['vcl']
+    except:
+        vcl=False
 except KeyError:
-    print('File conf.ini not found!!!!!!')
+    print('ФАИЛ КОНФИГУРАЦИИ conf.ini НЕ НАЙДЕН!')
     raise
 
 
@@ -168,6 +172,15 @@ def edit_config(config_db):
 
     replacer('\Aazk.license.name=X:/azk2/bft.lic', 'azk.license.name=bft.lic')
 
+def copy_vcl(client=None):
+    path = os.path.join(os.getcwd(),'client')
+    if client:
+        path = os.getcwd()
+    vcl_source = os.listdir(vcl)
+    for vcl_files in vcl_source:
+        vcl_full_name = os.path.join(vcl,vcl_files)
+        print('Copy {0} to {1}'.format(vcl_full_name,path))
+        copy(vcl_full_name, path)
 
 def main(files):
     assert os.getcwd() != dest, 'Wrong path'
@@ -191,12 +204,16 @@ def main(files):
     if 'server.zip' in local_files and 'client.zip' in local_files:
         zip_barr('server.zip')
         zip_barr('client.zip', 'client')
+        if vcl:
+            copy_vcl()
     elif 'server.zip' in local_files:
         zip_barr('server.zip')
     elif 'client.zip' in local_files:
         client = True
         zip_barr('client.zip')
         os.remove('client.zip')
+        if vcl:
+            copy_vcl(client=True)
 
     files = os.listdir(os.getcwd())
 
@@ -211,7 +228,6 @@ def main(files):
                 print('Deleting: ', file)
                 os.remove(file)
         edit_config(db)
-
 
 if __name__ == '__main__':
     try:
