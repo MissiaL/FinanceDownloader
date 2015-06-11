@@ -12,10 +12,22 @@ import configparser
 import re
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar, RotatingMarker
 import ftputil
+import etalon
+import logging
+
+root = logging.getLogger()
+root.setLevel(logging.DEBUG)
+hdlr = logging.FileHandler(os.path.join(sys.argv[0][:-14], 'downloader.log'))
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+hdlr.setFormatter(formatter)
+ch.setFormatter(formatter)
+root.addHandler(ch)
+root.addHandler(hdlr)
 
 
-
-usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [arg]
+usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et] ... [arg]
 Скрипт выкачивает с текущей папки архивы, создает необходимые директории
 и распаковывает в папку, указанную в конфигурационном файле.
 Оставляет все папки и файлы, указанные в конфигурационном файле
@@ -31,6 +43,7 @@ usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [arg]
 -o      : Тип БД Oracle. Так же необходимо указать
           логин и пароль к БД
 -ftp    : Путь к FTP директории c архивами
+-et     : Создать эталон БД
 Примеры использования:
 downloader.exe -s
 Выкачивает server.zip, распаковывает, удаляет файлы
@@ -48,7 +61,14 @@ downloader.exe -s -o AZ_VOLGOBL_20150420 AZ_VOLGOBL_20150420 -ftp /root/dir/azk/
 в conf.ini. Следует указать путь только до директории,
 относительного основного адреса. Распаковывает, настраивает
 Azk2Server.properties под под запуск с БД Oracle
+-------
+downloader.exe -et
+Создать эталон БД
         '''
+
+if len(sys.argv) < 2:
+    print(usage)
+    sys.exit(0)
 
 parser = argparse.ArgumentParser(description='List of commands:', usage=usage)
 parser.add_argument('-s', '--server', action='store_const', const=['server.zip'], help='Только server.zip')
@@ -58,10 +78,12 @@ parser.add_argument('-sc', '--sc', action='store_const', const=['server.zip', 'c
 parser.add_argument('-f', '--INTERBASE', nargs='*', help='Путь к БД. Необязательные параметры: логин, пароль')
 parser.add_argument('-o', '--ORACLE', nargs=2, help='Логин и пароль от БД')
 parser.add_argument('-ftp', '--FTP', nargs=1, help='Путь к директории на FTP')
+parser.add_argument('-et', '--ET', action='store_true', help='Создать эталон БД')
 args = parser.parse_args()
 opt = vars(args)
 
-files = ['server.zip']
+
+files = None
 db = []
 ftp_path = None
 for command, arguments in opt.items():
@@ -111,7 +133,7 @@ try:
         azkdburl_fb = False
 
 except KeyError:
-    print('ФАИЛ КОНФИГУРАЦИИ conf.ini НЕ НАЙДЕН!')
+    logging.info('ФАИЛ КОНФИГУРАЦИИ conf.ini НЕ НАЙДЕН!')
     raise
 
 if ftp_path and not host:
@@ -123,7 +145,7 @@ elif ftp_path and not password:
 
 
 def zip_barr(file, folder=None):
-    print('\nExtracting: {0}'.format(file))
+    logging.info('Извлечение: %s', file)
     zf = zipfile.ZipFile(file)
     uncompress_size = sum((file.file_size for file in zf.infolist()))
     extracted_size = 0
@@ -139,7 +161,7 @@ def zip_barr(file, folder=None):
 
 
 def copy_bar(src, dest):
-    print('\nCopying: {0} to {1}'.format(src, dest))
+    logging.info('Копирование %s в %s', src, dest)
     size = os.path.getsize(src)
     t = threading.Thread(target=copy, args=(src, dest,))
     t.start()
@@ -166,7 +188,7 @@ def copy_bar(src, dest):
 def ftp_bar(src, dest):
     ftp_host = ftputil.FTPHost(host, user, password)
     ftp_host.chdir(ftp_path)
-    print('\nCopying: {0} to {1}'.format(src, dest))
+    logging.info('Копирование %s to %s', src, dest)
     size = ftp_host.path.getsize(src)
     os.chdir(dest)
     t = threading.Thread(target=ftp_host.download, args=(src, src,))
@@ -200,9 +222,9 @@ def ftp_bar(src, dest):
 
 def edit_config(config_db):
     # def replacer(search, replace):
-    # print('Replace {0} to {1}'.format(search, replace))
+    # logging.info('Replace {0} to {1}'.format(search, replace))
     # for line in fileinput.input(cfg, inplace=True):
-    # print(line.replace(search, replace), end='')
+    # logging.info(line.replace(search, replace), end='')
     cfg_file = 'Azk2Server.properties'
 
     def replacer(re_search, replace):
@@ -213,12 +235,12 @@ def edit_config(config_db):
                 print(line)
                 line_for_replace = line.strip()
         cfg.close()
-        print('Replace {0} to {1}'.format(line_for_replace, replace))
+        logging.info('Изменение в %s. Заменяем %s на %s', cfg_file, line_for_replace, replace)
         for line in fileinput.input(cfg_file, inplace=True):
             print(line.replace(line_for_replace, replace), end='')
 
 
-    print('\nEdit {0}'.format(cfg_file))
+    logging.info('Изменяем %s', cfg_file)
     # config_db = ['ORACLE', 'AZ_ROSTOVOBL_20150203', 'AZ_ROSTOVOBL_20150203']
     db_name = None
     path = None
@@ -280,69 +302,76 @@ def copy_vcl(client=None):
     vcl_source = os.listdir(vcl)
     for vcl_files in vcl_source:
         vcl_full_name = os.path.join(vcl, vcl_files)
-        print('Copy {0} to {1}'.format(vcl_full_name, path))
+        logging.info('Копирование %s в %s', vcl_full_name, path)
         copy(vcl_full_name, path)
 
 
 def main(files):
-    if not ftp_path:
-        assert os.getcwd() != dest, 'Недопустимый путь'
+    if files is not None:
+        if not ftp_path:
+            assert os.getcwd() != dest, 'Недопустимый путь'
 
-    if ftp_path:
-        dest_folder = os.path.join(dest, os.path.basename(os.path.normpath(ftp_path)))
-    else:
-        dest_folder = os.path.join(dest, os.path.basename(os.getcwd()))
-
-    if os.path.isdir(dest_folder):
-        print('Delete: ', dest_folder)
-        rmtree(dest_folder)
-    print('Create: ', dest_folder)
-    os.makedirs(dest_folder)
-
-    # Копирование
-    for file in files:
         if ftp_path:
-            ftp_bar(file, dest_folder)
+            dest_folder = os.path.join(dest, os.path.basename(os.path.normpath(ftp_path)))
         else:
-            copy_bar(file, dest_folder)
+            dest_folder = os.path.join(dest, os.path.basename(os.getcwd()))
 
-    os.chdir(dest_folder)
-    local_files = os.listdir(os.getcwd())
+        if os.path.isdir(dest_folder):
+            logging.info('Удаление: %s', dest_folder)
+            rmtree(dest_folder)
+        logging.info('Создание: %s', dest_folder)
+        os.makedirs(dest_folder)
 
-    client = False
-    print(os.getcwd())
-    if 'server.zip' in local_files and 'client.zip' in local_files:
-        zip_barr('server.zip')
-        zip_barr('client.zip', 'client')
-        if vcl:
-            copy_vcl()
-    elif 'server.zip' in local_files:
-        zip_barr('server.zip')
-    elif 'client.zip' in local_files:
-        client = True
-        zip_barr('client.zip')
-        os.remove('client.zip')
-        if vcl:
-            copy_vcl(client=True)
-
-    files = os.listdir(os.getcwd())
-    if lic:
-        lic_name = os.path.basename(lic)
-        if lic_name not in files:
-            print('Copy bft.lic to {0}'.format(os.getcwd()))
-            copy(lic, os.getcwd())
-
-    if not client:
-        print('')
+        # Копирование
         for file in files:
-            if os.path.isdir(file):
-                pass
-            elif file in need_files:
-                pass
+            if ftp_path:
+                ftp_bar(file, dest_folder)
             else:
-                print('Deleting: ', file)
-                os.remove(file)
-        edit_config(db)
+                copy_bar(file, dest_folder)
+
+        os.chdir(dest_folder)
+        local_files = os.listdir(os.getcwd())
+
+        client = False
+        logging.info(os.getcwd())
+        if 'server.zip' in local_files and 'client.zip' in local_files:
+            zip_barr('server.zip')
+            zip_barr('client.zip', 'client')
+            if vcl:
+                copy_vcl()
+        elif 'server.zip' in local_files:
+            zip_barr('server.zip')
+        elif 'client.zip' in local_files:
+            client = True
+            zip_barr('client.zip')
+            os.remove('client.zip')
+            if vcl:
+                copy_vcl(client=True)
+
+        files = os.listdir(os.getcwd())
+        if lic:
+            lic_name = os.path.basename(lic)
+            if lic_name not in files:
+                logging.info('Копирование bft.lic в %s', os.getcwd())
+                copy(lic, os.getcwd())
+
+        if not client:
+            logging.info('')
+            for file in files:
+                if os.path.isdir(file):
+                    pass
+                elif file in need_files:
+                    pass
+                else:
+                    logging.info('Удаление %s', file)
+                    os.remove(file)
+            edit_config(db)
+
+        if args.ET:
+            etalon.create()
+
+    if args.ET:
+        etalon.create()
 
 
 if __name__ == '__main__':
