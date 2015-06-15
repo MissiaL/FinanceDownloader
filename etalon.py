@@ -20,7 +20,7 @@ def create():
     azk_db_user = 'azk.db.user=ET_' + folder_name.replace('.', '_') + '\n'
     azk_db_password = 'azk.db.password=ET_' + folder_name.replace('.', '_') + '\n'
     azk_db_sysuser = 'azk.db.sysuser=SYS\n'
-    azk_db_syspassword = 'azk.db.syspassword=VCRvDiAnuG\n'
+    azk_db_syspassword = 'azk.db.syspassword=.\n'
 
     db_name = None
     db_url = None
