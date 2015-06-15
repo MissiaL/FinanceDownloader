@@ -4,9 +4,14 @@ import sys
 import os
 import logging
 
+
 def create():
-    #os.chdir('E:\\AZK\\1578\\2.36.0.101')
     logging.info('Запускаем операцию создания эталона БД')
+
+    if not os.path.isfile('Azk2Server.properties'):
+        logging.error('Не найден Azk2Server.properties')
+        sys.exit(1)
+
     config_folder = os.getcwd()
     # Название папки - это имя пользователя azk.db.user
     folder_path = os.getcwd().split('\\')
@@ -15,7 +20,7 @@ def create():
     azk_db_user = 'azk.db.user=ET_' + folder_name.replace('.', '_') + '\n'
     azk_db_password = 'azk.db.password=ET_' + folder_name.replace('.', '_') + '\n'
     azk_db_sysuser = 'azk.db.sysuser=SYS\n'
-    azk_db_syspassword = 'azk.db.syspassword=.........\n'
+    azk_db_syspassword = 'azk.db.syspassword=VCRvDiAnuG\n'
 
     db_name = None
     db_url = None
@@ -32,11 +37,11 @@ def create():
             lines.append(line)
 
     if db_name is None:
-        logging.info('Не удалось определить режим работы с базой данных!')
+        logging.error('Не удалось определить режим работы с базой данных!')
         sys.exit(1)
 
     if db_url is None:
-        logging.info('Не удалось определить путь к базе данных!')
+        logging.error('Не удалось определить путь к базе данных!')
         sys.exit(1)
 
     if db_url != 'jdbc:oracle:thin:@x3-server:1521:support11' or db_url != 'jdbc:oracle:thin:@172.21.10.56:1521:support11':
@@ -51,19 +56,21 @@ def create():
         regex_syspassword = re.compile('azk.db.syspassword')
         for line in lines:
             if regex_user.search(line):
+                logging.info('Найден активный %s. Будет произведена замена', line.strip())
                 azk.write('')
                 continue
             if regex_password.search(line):
+                logging.info('Найден активный %s. Будет произведена замена', line.strip())
                 azk.write('')
                 continue
             azk.write(line)
-        logging.info('Записываем в конфиг {0}'.format(azk_db_user))
+        logging.info('Записываем в конфиг %s', azk_db_user.strip())
         azk.write(azk_db_user)
-        logging.info('Записываем в конфиг {0}'.format(azk_db_password))
+        logging.info('Записываем в конфиг %s', azk_db_password.strip())
         azk.write(azk_db_password)
-        logging.info('Записываем в конфиг {0}'.format(azk_db_sysuser))
+        logging.info('Записываем в конфиг %s', azk_db_sysuser.strip())
         azk.write(azk_db_sysuser)
-        logging.info('Записываем в конфиг {0}'.format(azk_db_syspassword))
+        logging.info('Записываем в конфиг %s', azk_db_syspassword.strip())
         azk.write(azk_db_syspassword)
 
     SQL = os.path.join(os.getcwd(), 'SQL')
@@ -81,7 +88,7 @@ def create():
     with open('grant_user.sql', 'w') as grant_sql:
         text = '''--oracle
 grant select on v_$locked_object to ET_{0}
-               ''' .format(folder_name.replace('.', '_') )
+               '''.format(folder_name.replace('.', '_'))
         grant_sql.write(text)
 
     os.chdir(config_folder)
@@ -94,9 +101,21 @@ grant select on v_$locked_object to ET_{0}
             lines.append(line)
     with open('Azk2Server.properties', 'w') as azk:
         for line in lines:
-            if regex_sysuser.search(line):
-                logging.info('Записываем в конфиг azk.db.user=SYS AS SYSDBA')
+            if regex_user.search(line):
+                logging.info('Заменяем %s на %s', line.strip(), 'azk.db.user=SYS AS SYSDBA')
                 azk.write('azk.db.user=SYS AS SYSDBA\n')
+                continue
+            if regex_password.search(line):
+                logging.info('Заменяем %s на %s', line.strip(), 'azk.db.password=VCRvDiAnuG')
+                azk.write('azk.db.password=VCRvDiAnuG\n')
+                continue
+            if regex_sysuser.search(line):
+                logging.info('Удаляем %s', line.strip())
+                azk.write('')
+                continue
+            if regex_syspassword.search(line):
+                logging.info('Удаляем %s', line.strip())
+                azk.write('')
                 continue
             azk.write(line)
 
@@ -108,7 +127,7 @@ grant select on v_$locked_object to ET_{0}
     logging.info('Изменяем Azk2Server.properties для запуска executer.cmd -site 0 perform_all perform.lst')
     with open('Azk2Server.properties', 'w') as azk:
         logging.info('Удаляем azk.db.user=SYS AS SYSDBA')
-        logging.info('Записываем в конфиг {0}'.format(azk_db_sysuser))
+        logging.info('Записываем в конфиг %s', azk_db_sysuser.strip())
         for line in lines:
             azk.write(line)
 
@@ -126,11 +145,11 @@ grant select on v_$locked_object to ET_{0}
     with open('Azk2Server.properties', 'w') as azk:
         for line in lines:
             if regex_sysuser.search(line):
-                logging.info('Удаляем из конфига {0}'.format(azk_db_sysuser))
+                logging.info('Удаляем из конфига %s', azk_db_sysuser.strip())
                 azk.write('')
                 continue
             if regex_syspassword.search(line):
-                logging.info('Удаляем из конфига {0}'.format(azk_db_password))
+                logging.info('Удаляем из конфига %s', azk_db_password.strip())
                 azk.write('')
                 continue
             azk.write(line)

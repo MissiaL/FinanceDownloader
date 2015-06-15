@@ -30,7 +30,8 @@ root.addHandler(hdlr)
 usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et] ... [arg]
 Скрипт выкачивает с текущей папки архивы, создает необходимые директории
 и распаковывает в папку, указанную в конфигурационном файле.
-Оставляет все папки и файлы, указанные в конфигурационном файле
+Оставляет все папки и файлы, указанные в конфигурационном файле.
+Все действия пишутся в downloader.log в корневую папку.
 
 Основные параметры:
 -sc     : Выкачивание сервера и клиента
@@ -63,7 +64,9 @@ downloader.exe -s -o AZ_VOLGOBL_20150420 AZ_VOLGOBL_20150420 -ftp /root/dir/azk/
 Azk2Server.properties под под запуск с БД Oracle
 -------
 downloader.exe -et
-Создать эталон БД
+Создать эталон БД. Имя эталона берется из имени папки.
+Пароль аналогичен. Аргумент создает скрипт grant_user.sql
+в папке SQL для выдачи гранта.
         '''
 
 if len(sys.argv) < 2:
@@ -221,10 +224,6 @@ def ftp_bar(src, dest):
 
 
 def edit_config(config_db):
-    # def replacer(search, replace):
-    # logging.info('Replace {0} to {1}'.format(search, replace))
-    # for line in fileinput.input(cfg, inplace=True):
-    # logging.info(line.replace(search, replace), end='')
     cfg_file = 'Azk2Server.properties'
 
     def replacer(re_search, replace):
@@ -309,7 +308,7 @@ def copy_vcl(client=None):
 def main(files):
     if files is not None:
         if not ftp_path:
-            assert os.getcwd() != dest, 'Недопустимый путь'
+            assert os.getcwd() != dest, 'Недопустимый путь. Возможно необходимо проверить путь запуска утилиты!'
 
         if ftp_path:
             dest_folder = os.path.join(dest, os.path.basename(os.path.normpath(ftp_path)))
@@ -356,7 +355,6 @@ def main(files):
                 copy(lic, os.getcwd())
 
         if not client:
-            logging.info('')
             for file in files:
                 if os.path.isdir(file):
                     pass
