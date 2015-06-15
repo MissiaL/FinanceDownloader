@@ -307,6 +307,8 @@ def copy_vcl(client=None):
 
 def main(files):
     if files is not None:
+        logging.info('-'*60)
+        logging.info('Старт работы')
         if not ftp_path:
             assert os.getcwd() != dest, 'Недопустимый путь. Возможно необходимо проверить путь запуска утилиты!'
 

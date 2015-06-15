@@ -26,7 +26,7 @@ def create():
     db_url = None
     with open('Azk2Server.properties', 'r') as azk:
         lines = []
-        regex_db_name = re.compile('azk.db.accessmode=ORACLE')
+        regex_db_name = re.compile('\Aazk.db.accessmode=ORACLE')
         regex_db_url = re.compile('\Aazk.db.url')
         config = azk.readlines()
         for line in config:
@@ -47,7 +47,7 @@ def create():
     if db_url != 'jdbc:oracle:thin:@x3-server:1521:support11' or db_url != 'jdbc:oracle:thin:@172.21.10.56:1521:support11':
         logging.warning('Возможно путь к базе данных неверный! Создание эталона может прекратиться!')
 
-    # Правим конфиг
+    #Правим конфиг
     logging.info('Изменяем Azk2Server.properties для создания эталона БД')
     with open('Azk2Server.properties', 'w') as azk:
         regex_user = re.compile('\Aazk.db.user')
@@ -78,7 +78,10 @@ def create():
 
     # SQL\executer.cmd create_user
     logging.info('Запускаем executer.cmd create_user')
-    subprocess.call(['executer.cmd', 'create_user'], cwd=SQL, shell=True)
+    p = subprocess.call(['executer.cmd', 'create_user'], cwd=SQL, shell=True)
+    if p != 0:
+        logging.error('Ошибка выполнения executer.cmd create_user')
+        sys.exit(1)
 
     if os.path.isfile('grant_user.sql'):
         os.remove('grant_user.sql')
@@ -121,7 +124,10 @@ grant select on v_$locked_object to ET_{0}
 
     # Выполняем SQL\sql.cmd grant_user.sql
     logging.info('Выполняем sql.cmd grant_user.sql')
-    subprocess.call(['sql.cmd', 'grant_user.sql'], cwd=SQL, shell=True)
+    p = subprocess.call(['sql.cmd', 'grant_user.sql'], cwd=SQL, shell=True)
+    if p != 0:
+        logging.error('Ошибка выполнения sql.cmd grant_user.sql')
+        sys.exit(1)
 
     # Правим конфиг
     logging.info('Изменяем Azk2Server.properties для запуска executer.cmd -site 0 perform_all perform.lst')
@@ -133,7 +139,10 @@ grant select on v_$locked_object to ET_{0}
 
     # Выполняем команду SQL\executer.cmd -site 0 perform_all perform.lst
     logging.info('Выполняем executer.cmd -site 0 perform_all perform.lst')
-    subprocess.call(['executer.cmd', '-site', '0', 'perform_all', 'perform.lst'], cwd=SQL, shell=True)
+    p = subprocess.call(['executer.cmd', '-site', '0', 'perform_all', 'perform.lst'], cwd=SQL, shell=True)
+    if p != 0:
+        logging.error('Ошибка выполнения executer.cmd -site 0 perform_all perform.lst')
+        sys.exit(1)
 
     # Удаляем из конфига sys пользователя
     logging.info('Изменяем Azk2Server.properties')
