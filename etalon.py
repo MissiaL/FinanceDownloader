@@ -3,6 +3,19 @@ import re
 import sys
 import os
 import logging
+import configparser
+
+
+config = configparser.ConfigParser()
+config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
+if config.has_option('ETALON', 'azk.db.sysuser'):
+    azk_db_sysuser = 'azk.db.sysuser=' + config['ETALON']['azk.db.sysuser'] + '\n'
+else:
+    azk_db_sysuser = 'azk.db.sysuser=SYS\n'
+if config.has_option('ETALON', 'azk.db.syspassword'):
+    azk_db_syspassword = 'azk.db.syspassword=' + config['ETALON']['azk.db.syspassword'] + '\n'
+else:
+    azk_db_syspassword = 'azk.db.syspassword=.\n'
 
 
 def create():
@@ -19,14 +32,12 @@ def create():
 
     azk_db_user = 'azk.db.user=ET_' + folder_name.replace('.', '_') + '\n'
     azk_db_password = 'azk.db.password=ET_' + folder_name.replace('.', '_') + '\n'
-    azk_db_sysuser = 'azk.db.sysuser=SYS\n'
-    azk_db_syspassword = 'azk.db.syspassword=.\n'
 
     db_name = None
     db_url = None
     with open('Azk2Server.properties', 'r') as azk:
         lines = []
-        regex_db_name = re.compile('\Aazk.db.accessmode=ORACLE')
+        regex_db_name = re.compile('\Aazk.db.accessmode=ORACLE|\Aazk.db.accessmode=oracle')
         regex_db_url = re.compile('\Aazk.db.url')
         config = azk.readlines()
         for line in config:
@@ -52,14 +63,22 @@ def create():
     with open('Azk2Server.properties', 'w') as azk:
         regex_user = re.compile('\Aazk.db.user')
         regex_password = re.compile('\Aazk.db.password')
-        regex_sysuser = re.compile('azk.db.sysuser')
-        regex_syspassword = re.compile('azk.db.syspassword')
+        regex_sysuser = re.compile('\Aazk.db.sysuser')
+        regex_syspassword = re.compile('\Aazk.db.syspassword')
         for line in lines:
             if regex_user.search(line):
                 logging.info('Найден активный %s. Будет произведена замена', line.strip())
                 azk.write('')
                 continue
             if regex_password.search(line):
+                logging.info('Найден активный %s. Будет произведена замена', line.strip())
+                azk.write('')
+                continue
+            if regex_sysuser.search(line):
+                logging.info('Найден активный %s. Будет произведена замена', line.strip())
+                azk.write('')
+                continue
+            if regex_syspassword.search(line):
                 logging.info('Найден активный %s. Будет произведена замена', line.strip())
                 azk.write('')
                 continue
@@ -95,6 +114,7 @@ grant select on v_$locked_object to ET_{0}
         grant_sql.write(text)
 
     os.chdir(config_folder)
+
     # Правим конфиг для выдачи гранта пользователю
     logging.info('Изменяем Azk2Server.properties для запуска sql.cmd grant_user.sql')
     with open('Azk2Server.properties', 'r') as azk:
