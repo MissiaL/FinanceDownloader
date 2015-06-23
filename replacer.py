@@ -30,62 +30,71 @@ cfg_name = 'Azk2Server.properties'
 def edit_cfg(arg):
     with open(cfg_name, 'r') as azk:
         lines = [line for line in azk.readlines()]
-    
-    db = arg[0]
-    if db == 'ORACLE':
-        login = arg[1]
-        password = arg[2]
+    logging.info('Изменяем %s', cfg_name)
+    if arg:
+        db = arg[0]
+        if db == 'ORACLE':
+            login = arg[1]
+            password = arg[2]
+            with open(cfg_name, 'w') as azk:
+                for line in lines:
+                    if regex_db.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
+                        azk.write('azk.db.accessmode=ORACLE\n')
+                        continue
+                    # Если сборка АЦК-Планирование
+                    elif regex_db_planing.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
+                        azk.write('azk.db.accessmode=ORACLE\n')
+                        continue
+                    if regex_db_url.search(line):
+                        if azkdburl_orcl is not None:
+                            logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_orcl)
+                            azk.write('azk.db.url=' + azkdburl_orcl + '\n')
+                            continue
+                        else:
+                            logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11')
+                            azk.write('azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11\n')
+                            continue
+                    if regex_db_user.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.user=' + login)
+                        azk.write('azk.db.user=' + login + '\n')
+                        continue
+                    if regex_db_password.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.password=' + password)
+                        azk.write('azk.db.password=' + password + '\n')
+                        continue
+                    if regex_db_lic.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.license.name=bft.lic')
+                        azk.write('azk.license.name=bft.lic' + '\n')
+                        continue
+                    azk.write(line)
+
+        elif db == 'INTERBASE':
+            path = arg[1].replace('\\', '/')
+            with open(cfg_name, 'w') as azk:
+                for line in lines:
+                    if regex_db_interbase.search(line) or regex_db_planing.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=INTERBASE')
+                        azk.write('azk.db.accessmode=INTERBASE' + '\n')
+                        continue
+                    if regex_db_url.search(line):
+                        if azkdburl_fb is not None:
+                            logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_fb + ':' + path)
+                            azk.write('azk.db.url=' + azkdburl_fb + ':' + path + '\n')
+                            continue
+                        else:
+                            logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=jdbc:firebirdsql:127.0.0.1/3050' + ':' + path)
+                            azk.write('azk.db.url=jdbc:firebirdsql:127.0.0.1/3050' + ':' + path + '\n')
+                            continue
+                    if regex_db_lic.search(line):
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.license.name=bft.lic')
+                        azk.write('azk.license.name=bft.lic' + '\n')
+                        continue
+                    azk.write(line)
+    else:
         with open(cfg_name, 'w') as azk:
             for line in lines:
-                if regex_db.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
-                    azk.write('azk.db.accessmode=ORACLE\n')
-                    continue
-                # Если сборка АЦК-Планирование
-                elif regex_db_planing.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
-                    azk.write('azk.db.accessmode=ORACLE\n')
-                    continue
-                if regex_db_url.search(line):
-                    if azkdburl_orcl is not None:
-                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_orcl)
-                        azk.write('azk.db.url=' + azkdburl_orcl + '\n')
-                        continue
-                    else:
-                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11')
-                        azk.write('azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11\n')
-                        continue
-                if regex_db_user.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.user=' + login)
-                    azk.write('azk.db.user=' + login + '\n')
-                    continue
-                if regex_db_password.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.password=' + password)
-                    azk.write('azk.db.password=' + password + '\n')
-                    continue
-                if regex_db_lic.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.license.name=bft.lic')
-                    azk.write('azk.license.name=bft.lic' + '\n')
-                    continue
-                azk.write(line)
-    
-    elif db == 'INTERBASE':
-        path = arg[1].replace('\\', '/')
-        with open(cfg_name, 'w') as azk:
-            for line in lines:
-                if regex_db_interbase.search(line) or regex_db_planing.search(line):
-                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=INTERBASE')
-                    azk.write('azk.db.accessmode=INTERBASE' + '\n')
-                    continue
-                if regex_db_url.search(line):
-                    if azkdburl_fb is not None:
-                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_fb + ':' + path)
-                        azk.write('azk.db.url=' + azkdburl_fb + ':' + path + '\n')
-                        continue
-                    else:
-                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=jdbc:firebirdsql:127.0.0.1/3050' + ':' + path)
-                        azk.write('azk.db.url=jdbc:firebirdsql:127.0.0.1/3050' + ':' + path + '\n')
-                        continue
                 if regex_db_lic.search(line):
                     logging.info('Заменяем %s на %s', line.strip(), 'azk.license.name=bft.lic')
                     azk.write('azk.license.name=bft.lic' + '\n')

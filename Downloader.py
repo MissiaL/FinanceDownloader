@@ -25,7 +25,7 @@ ch.setFormatter(formatter)
 root.addHandler(ch)
 root.addHandler(hdlr)
 
-usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et] ... [arg]
+usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et] ... [-p] ... [arg]
 Скрипт выкачивает с текущей папки архивы, создает необходимые директории
 и распаковывает в папку, указанную в конфигурационном файле.
 Оставляет все папки и файлы, указанные в конфигурационном файле.
@@ -41,6 +41,7 @@ usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et]
           логин и пароль к БД
 -ftp    : Путь к FTP директории c архивами
 -et     : Создать эталон БД
+-p      : Путь, куда нужно выкачивать сборку
 Примеры использования:
 downloader.exe -s
 Выкачивает server.zip, распаковывает, удаляет файлы
@@ -78,6 +79,7 @@ parser.add_argument('-f', '--INTERBASE', nargs=1, help='Путь к БД. Лог
 parser.add_argument('-o', '--ORACLE', nargs=2, help='Логин и пароль от БД')
 parser.add_argument('-ftp', '--FTP', nargs=1, help='Путь к директории на FTP')
 parser.add_argument('-et', '--ET', action='store_true', help='Создать эталон БД')
+parser.add_argument('-p', '--P', nargs=1, help='Путь, куда нужно выкачивать сборку')
 args = parser.parse_args()
 opt = vars(args)
 
@@ -103,8 +105,7 @@ config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
 if config.has_option('PATH', 'home'):
     home = config['PATH']['home']
 else:
-    logging.error('Не задан путь к папке, в которую будут выкачиваться сборки')
-    sys.exit(1)
+    home = args.P[0]
 if config.has_option('PATH', 'vcl'):
     vcl = config['PATH']['vcl']
 else:
@@ -220,8 +221,6 @@ def ftp_bar(src, home):
 
 
 def edit_config(config_db):
-    cfg_file = 'Azk2Server.properties'
-    logging.info('Изменяем %s', cfg_file)
     replacer.edit_cfg(config_db)
 
 def copy_vcl(client=None):

@@ -15,7 +15,7 @@ else:
 if config.has_option('ETALON', 'azk.db.syspassword'):
     azk_db_syspassword = 'azk.db.syspassword=' + config['ETALON']['azk.db.syspassword'] + '\n'
 else:
-    azk_db_syspassword = 'azk.db.syspassword=.\n'
+    azk_db_syspassword = 'azk.db.syspassword=v29Q1Syq\n'
 
 
 def create():
