@@ -55,7 +55,7 @@ def create():
         logging.error('Не удалось определить путь к базе данных!')
         sys.exit(1)
 
-    if db_url != 'jdbc:oracle:thin:@x3-server:1521:support11' or db_url != 'jdbc:oracle:thin:@172.21.10.56:1521:support11':
+    if db_url != ('jdbc:oracle:thin:@x3-server:1521:support11' or 'jdbc:oracle:thin:@172.21.10.56:1521:support11'):
         logging.warning('Возможно путь к базе данных неверный! Создание эталона может прекратиться!')
 
     #Правим конфиг

@@ -105,7 +105,8 @@ config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
 if config.has_option('PATH', 'home'):
     home = config['PATH']['home']
 else:
-    home = args.P[0]
+    if not args.ET:
+        home = args.P[0]
 if config.has_option('PATH', 'vcl'):
     vcl = config['PATH']['vcl']
 else:
@@ -114,10 +115,11 @@ if config.has_option('PATH', 'lic'):
     lic = config['PATH']['lic']
 else:
     lic = False
-if config.has_option('FILES', 'need'):
-    need = config['FILES']['need']
+if config.has_option('FILES', 'remove'):
+    remove = config['FILES']['remove'].split(',')
+    remove = [name.strip() for name in remove]
 else:
-    need = []
+    remove = []
 
 if config.has_option('FTP', 'host'):
     host = config['FTP']['host']
@@ -285,15 +287,18 @@ def main(files):
                 logging.info('Копирование bft.lic в %s', os.getcwd())
                 copy(lic, os.getcwd())
 
+
         if not client:
             for file in files:
-                if os.path.isdir(file):
-                    pass
-                elif file in need:
-                    pass
-                else:
+                if file in remove and not os.path.isdir(file):
                     logging.info('Удаление %s', file)
                     os.remove(file)
+            if os.path.isfile('server.zip'):
+                logging.info('Удаление server.zip')
+                os.remove('server.zip')
+            if os.path.isfile('client.zip'):
+                logging.info('Удаление client.zip')
+                os.remove('client.zip')
             edit_config(db)
 
         if args.ET:
@@ -301,6 +306,7 @@ def main(files):
 
     if args.ET:
         etalon.create()
+
 
 
 if __name__ == '__main__':

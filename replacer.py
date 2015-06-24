@@ -95,6 +95,15 @@ def edit_cfg(arg):
     else:
         with open(cfg_name, 'w') as azk:
             for line in lines:
+                if regex_db_url.search(line):
+                    if azkdburl_orcl is not None:
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_orcl)
+                        azk.write('azk.db.url=' + azkdburl_orcl + '\n')
+                        continue
+                    else:
+                        logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11')
+                        azk.write('azk.db.url=jdbc:oracle:thin:@172.21.10.56:1521:support11\n')
+                        continue
                 if regex_db_lic.search(line):
                     logging.info('Заменяем %s на %s', line.strip(), 'azk.license.name=bft.lic')
                     azk.write('azk.license.name=bft.lic' + '\n')
