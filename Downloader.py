@@ -75,38 +75,47 @@ parser.add_argument('-s', '--server', action='store_const', const=['server.zip']
 parser.add_argument('-c', '--client', action='store_const', const=['client.zip'], help='Только client.zip')
 parser.add_argument('-sc', '--sc', action='store_const', const=['server.zip', 'client.zip'],
                     help='Только client.zip и server.zip')
-parser.add_argument('-f', '--INTERBASE', nargs=1, help='Путь к БД. Логин и пароль: SYSDBA, MASTERKEY')
-parser.add_argument('-o', '--ORACLE', nargs=2, help='Логин и пароль от БД')
-parser.add_argument('-ftp', '--FTP', nargs=1, help='Путь к директории на FTP')
-parser.add_argument('-et', '--ET', action='store_true', help='Создать эталон БД')
-parser.add_argument('-p', '--P', nargs=1, help='Путь, куда нужно выкачивать сборку')
+parser.add_argument('-f', '--interbase', nargs=1, help='Путь к БД. Логин и пароль: SYSDBA, MASTERKEY')
+parser.add_argument('-o', '--oracle', nargs=2, help='Логин и пароль от БД')
+parser.add_argument('-ftp', '--ftp', nargs=1, help='Путь к директории на FTP')
+parser.add_argument('-et', '--et', action='store_true', help='Создать эталон БД')
+parser.add_argument('-p', '--p', nargs=1, help='Путь, куда нужно выкачивать сборку')
 args = parser.parse_args()
-opt = vars(args)
 
 files = None
-db = []
 ftp_path = None
-for command, arguments in opt.items():
-    if command in ['server', 'sc', 'client'] and arguments is not None:
-        files = arguments
-    if command in ['INTERBASE', 'ORACLE'] and arguments is not None:
-        db.append(command)
-        db = db + arguments
-    if command in ['FTP'] and arguments is not None:
-        ftp_path = arguments[0]
+db = []
 
-if not os.path.isfile(os.path.join(sys.argv[0][:-14], 'conf.ini')):
+if args.server is not None:
+    files = args.server
+if args.client is not None:
+    files = args.client
+if args.sc is not None:
+    files = args.sc
+
+if args.ftp is not None:
+    ftp_path = args.ftp
+
+if args.interbase is not None:
+    db.append('INTERBASE')
+    db.append(args.interbase[0])
+if args.oracle is not None:
+    db.append('ORACLE')
+    db.append(args.oracle[0])
+    db.append(args.oracle[1])
+
+if not os.path.isfile(os.path.join(sys.argv[0][:-14], 'config.ini')):
     logging.error('Файл конфигурации не найден')
     sys.exit(1)
 
 config = configparser.ConfigParser()
-config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
+config.read(os.path.join(sys.argv[0][:-14], 'config.ini'))
 
 if config.has_option('PATH', 'home'):
     home = config['PATH']['home']
 else:
-    if not args.ET:
-        home = args.P[0]
+    if not args.et:
+        home = args.p[0]
 if config.has_option('PATH', 'vcl'):
     vcl = config['PATH']['vcl']
 else:
@@ -134,14 +143,13 @@ if config.has_option('FTP', 'password'):
 else:
     password = False
 
-
-if ftp_path and not host:
+if ftp_path is None and not host:
     logging.error('Указан аргумент -ftp, но файле конфигурации отсутствует параметр host')
     sys.exit(1)
-elif ftp_path and not user:
+elif ftp_path is None and not user:
     logging.error('Указан аргумент -ftp, но файле конфигурации отсутствует параметр user')
     sys.exit(1)
-elif ftp_path and not password:
+elif ftp_path is None and not password:
     logging.error('Указан аргумент -ftp, но файле конфигурации отсутствует параметр password')
     sys.exit(1)
 
@@ -166,6 +174,7 @@ def copy_bar(src, home):
     logging.info('Копирование %s в %s', src, home)
     size = os.path.getsize(src)
     t = threading.Thread(target=copy, args=(src, home,))
+    t.setDaemon(True)
     t.start()
     tm = 0
     while True:
@@ -194,6 +203,7 @@ def ftp_bar(src, home):
     size = ftp_host.path.getsize(src)
     os.chdir(home)
     t = threading.Thread(target=ftp_host.download, args=(src, src,))
+    t.setDaemon(True)
     t.start()
     tm = 0
     while True:
@@ -224,6 +234,7 @@ def ftp_bar(src, home):
 
 def edit_config(config_db):
     replacer.edit_cfg(config_db)
+
 
 def copy_vcl(client=None):
     path = os.path.join(os.getcwd(), 'client')
@@ -287,7 +298,6 @@ def main(files):
                 logging.info('Копирование bft.lic в %s', os.getcwd())
                 copy(lic, os.getcwd())
 
-
         if not client:
             for file in files:
                 if file in remove and not os.path.isdir(file):
@@ -301,12 +311,11 @@ def main(files):
                 os.remove('client.zip')
             edit_config(db)
 
-        if args.ET:
+        if args.et:
             etalon.create()
 
-    if args.ET:
+    if args.et:
         etalon.create()
-
 
 
 if __name__ == '__main__':

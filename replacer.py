@@ -21,7 +21,7 @@ regex_db_interbase = re.compile('\A#azk.db.accessmode=INTERBASE')
 regex_db_planing = re.compile('\Aazk.db.accessmode=INTERBASE')
 regex_db_user = re.compile('\Aazk.db.user=SYSDBA')
 regex_db_password = re.compile('\Aazk.db.password=masterkey')
-regex_db_url = re.compile('\Aazk.db.url=jdbc:firebirdsql:127.0.0.1')
+regex_db_url = re.compile('\Aazk.db.url=jdbc:firebirdsql')
 regex_db_lic = re.compile('\Aazk.license.name=')
 
 
