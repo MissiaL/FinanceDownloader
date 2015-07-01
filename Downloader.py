@@ -111,11 +111,14 @@ if not os.path.isfile(os.path.join(sys.argv[0][:-14], 'config.ini')):
 config = configparser.ConfigParser()
 config.read(os.path.join(sys.argv[0][:-14], 'config.ini'))
 
-if config.has_option('PATH', 'home'):
-    home = config['PATH']['home']
+if args.p is not None:
+    home = args.p[0]
 else:
-    if not args.et:
-        home = args.p[0]
+    if config.has_option('PATH', 'home'):
+        home = config['PATH']['home']
+    else:
+        logging.error('Не указан путь, для выкачивания сборки')
+        sys.exit(1)
 if config.has_option('PATH', 'vcl'):
     vcl = config['PATH']['vcl']
 else:
