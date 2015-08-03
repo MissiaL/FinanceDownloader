@@ -95,6 +95,15 @@ def edit_cfg(arg):
     else:
         with open(cfg_name, 'w') as azk:
             for line in lines:
+                if regex_db.search(line):
+                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
+                    azk.write('azk.db.accessmode=ORACLE\n')
+                    continue
+                # Если сборка АЦК-Планирование
+                elif regex_db_planing.search(line):
+                    logging.info('Заменяем %s на %s', line.strip(), 'azk.db.accessmode=ORACLE')
+                    azk.write('azk.db.accessmode=ORACLE\n')
+                    continue
                 if regex_db_url.search(line):
                     if azkdburl_orcl is not None:
                         logging.info('Заменяем %s на %s', line.strip(), 'azk.db.url=' + azkdburl_orcl)
