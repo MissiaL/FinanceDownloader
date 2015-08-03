@@ -8,15 +8,21 @@ import zipfile
 import argparse
 import sys
 import configparser
+import logging
+
 from progressbar import Bar, ETA, FileTransferSpeed, Percentage, ProgressBar, RotatingMarker
 import ftputil
+
 import etalon
-import logging
 import replacer
+
+
+run_dir = os.path.realpath(os.path.dirname(sys.argv[0]))
+log = os.path.join(run_dir, 'downloader.log')
 
 root = logging.getLogger()
 root.setLevel(logging.DEBUG)
-hdlr = logging.FileHandler(os.path.join(sys.argv[0][:-14], 'downloader.log'))
+hdlr = logging.FileHandler(log)
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -24,6 +30,8 @@ hdlr.setFormatter(formatter)
 ch.setFormatter(formatter)
 root.addHandler(ch)
 root.addHandler(hdlr)
+
+logging.info('-' * 60)
 
 usage = '''downloader.exe [option] ... [-s | -c | -sc ] ... [-f | -o ] ... [-et] ... [-p] ... [arg]
 Скрипт выкачивает с текущей папки архивы, создает необходимые директории
@@ -117,8 +125,7 @@ else:
     if config.has_option('PATH', 'home'):
         home = config['PATH']['home']
     else:
-        logging.error('Не указан путь, для выкачивания сборки')
-        sys.exit(1)
+        home = False
 if config.has_option('PATH', 'vcl'):
     vcl = config['PATH']['vcl']
 else:

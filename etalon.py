@@ -5,9 +5,11 @@ import os
 import logging
 import configparser
 
+run_dir = os.path.realpath(os.path.dirname(sys.argv[0]))
 
 config = configparser.ConfigParser()
-config.read(os.path.join(sys.argv[0][:-14], 'conf.ini'))
+config.read(os.path.join(run_dir, 'config.ini'))
+
 if config.has_option('ETALON', 'azk.db.sysuser'):
     azk_db_sysuser = 'azk.db.sysuser=' + config['ETALON']['azk.db.sysuser'] + '\n'
 else:
@@ -15,17 +17,21 @@ else:
 if config.has_option('ETALON', 'azk.db.syspassword'):
     azk_db_syspassword = 'azk.db.syspassword=' + config['ETALON']['azk.db.syspassword'] + '\n'
 else:
-    azk_db_syspassword = 'azk.db.syspassword=v29Q1Syq\n'
+    azk_db_syspassword = 'azk.db.syspassword=VCRvDiAnuG\n'
 
 
 def create():
     logging.info('Запускаем операцию создания эталона БД')
 
-    if not os.path.isfile('Azk2Server.properties'):
-        logging.error('Не найден Azk2Server.properties')
+    config_folder = os.getcwd()
+    files = os.listdir(config_folder)
+    prop = [cfg for cfg in files if cfg == 'Server.properties' or cfg == 'Azk2Server.properties'][0]
+
+    if not os.path.isfile(prop):
+        logging.error('Не найден %s', prop)
         sys.exit(1)
 
-    config_folder = os.getcwd()
+
     # Название папки - это имя пользователя azk.db.user
     folder_path = os.getcwd().split('\\')
     folder_name = folder_path[len(folder_path) - 1]
@@ -35,7 +41,7 @@ def create():
 
     db_name = None
     db_url = None
-    with open('Azk2Server.properties', 'r') as azk:
+    with open(prop, 'r') as azk:
         lines = []
         regex_db_name = re.compile('\Aazk.db.accessmode=ORACLE|\Aazk.db.accessmode=oracle')
         regex_db_url = re.compile('\Aazk.db.url')
@@ -55,12 +61,13 @@ def create():
         logging.error('Не удалось определить путь к базе данных!')
         sys.exit(1)
 
-    if db_url != ('jdbc:oracle:thin:@x3-server:1521:support11' or 'jdbc:oracle:thin:@172.21.10.56:1521:support11'):
+    logging.info('Парметр azk.db.url=%s', db_url)
+    if db_url not in ('jdbc:oracle:thin:@x3-server:1521:support11' or 'jdbc:oracle:thin:@172.21.10.56:1521:support11'):
         logging.warning('Возможно путь к базе данных неверный! Создание эталона может прекратиться!')
 
-    #Правим конфиг
-    logging.info('Изменяем Azk2Server.properties для создания эталона БД')
-    with open('Azk2Server.properties', 'w') as azk:
+    # Правим конфиг
+    logging.info('Изменяем Server.properties для создания эталона БД')
+    with open(prop, 'w') as azk:
         regex_user = re.compile('\Aazk.db.user')
         regex_password = re.compile('\Aazk.db.password')
         regex_sysuser = re.compile('\Aazk.db.sysuser')
@@ -116,13 +123,13 @@ grant select on v_$locked_object to ET_{0}
     os.chdir(config_folder)
 
     # Правим конфиг для выдачи гранта пользователю
-    logging.info('Изменяем Azk2Server.properties для запуска sql.cmd grant_user.sql')
-    with open('Azk2Server.properties', 'r') as azk:
+    logging.info('Изменяем Server.properties для запуска sql.cmd grant_user.sql')
+    with open(prop, 'r') as azk:
         lines = []
         config = azk.readlines()
         for line in config:
             lines.append(line)
-    with open('Azk2Server.properties', 'w') as azk:
+    with open(prop, 'w') as azk:
         for line in lines:
             if regex_user.search(line):
                 logging.info('Заменяем %s на %s', line.strip(), 'azk.db.user=SYS AS SYSDBA')
@@ -150,8 +157,8 @@ grant select on v_$locked_object to ET_{0}
         sys.exit(1)
 
     # Правим конфиг
-    logging.info('Изменяем Azk2Server.properties для запуска executer.cmd -site 0 perform_all perform.lst')
-    with open('Azk2Server.properties', 'w') as azk:
+    logging.info('Изменяем Server.properties для запуска executer.cmd -site 0 perform_all perform.lst')
+    with open(prop, 'w') as azk:
         logging.info('Удаляем azk.db.user=SYS AS SYSDBA')
         logging.info('Записываем в конфиг %s', azk_db_sysuser.strip())
         for line in lines:
@@ -165,13 +172,13 @@ grant select on v_$locked_object to ET_{0}
         sys.exit(1)
 
     # Удаляем из конфига sys пользователя
-    logging.info('Изменяем Azk2Server.properties')
-    with open('Azk2Server.properties', 'r') as azk:
+    logging.info('Изменяем Server.properties')
+    with open(prop, 'r') as azk:
         lines = []
         config = azk.readlines()
         for line in config:
             lines.append(line)
-    with open('Azk2Server.properties', 'w') as azk:
+    with open(prop, 'w') as azk:
         for line in lines:
             if regex_sysuser.search(line):
                 logging.info('Удаляем из конфига %s', azk_db_sysuser.strip())
